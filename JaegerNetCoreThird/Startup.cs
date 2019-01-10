@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
 using JaegerNetCoreFirst.Tracer;
+using JaegerNetCoreSecond.App_Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OpenTracing.Contrib.NetCore.CoreFx;
+using Newtonsoft.Json.Linq;
 using OpenTracing.Util;
 
 namespace JaegerNetCoreFirst
@@ -46,12 +49,32 @@ namespace JaegerNetCoreFirst
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            GetSettings();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
             app.UseMvc();
+        }
+
+        public async void GetSettings()
+        {
+            var client = new HttpClient();
+            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/configA");
+
+            var indexOfOpenBracket = getRequest.IndexOf('{');
+            var indexOfCloseBracket = getRequest.LastIndexOf('}');
+            var json = getRequest.Substring(indexOfOpenBracket, indexOfCloseBracket - indexOfOpenBracket + 1);
+
+            var jObject = JObject.Parse(json);
+            var value = (string)jObject["Value"];
+            var decodedValue = Encoding.UTF8.GetString(Convert.FromBase64String(value));
+
+            JObject jsonSettings = JObject.Parse(decodedValue);
+            ConsulSettings.Url = (string)jsonSettings["nextUrl"];
+            ConsulSettings.ConnectionString = (string)jsonSettings["connectionString"];
         }
     }
 }

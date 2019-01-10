@@ -1,6 +1,4 @@
 using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using JaegerNetCoreSecond.App_Data;
@@ -40,6 +38,7 @@ namespace JaegerNetCoreSecond
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             GetSettings();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -51,18 +50,18 @@ namespace JaegerNetCoreSecond
         public async void GetSettings()
         {
             var client = new HttpClient();
-            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/config");
-            var size = getRequest.Length;
-            var f = getRequest.IndexOf('{');
-            var l = getRequest.LastIndexOf('}');
-            var json = getRequest.Substring(f , l - f + 1);
-            JObject jObject = JObject.Parse(json);
-            string value = (string)jObject["Value"];
-            byte[] data = Convert.FromBase64String(value);
-            string decodedValue = Encoding.UTF8.GetString(data);
+            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/configB");
+
+            var indexOfOpenBracket = getRequest.IndexOf('{');
+            var indexOfCloseBracket = getRequest.LastIndexOf('}');
+            var json = getRequest.Substring(indexOfOpenBracket, indexOfCloseBracket - indexOfOpenBracket + 1);
+
+            var jObject = JObject.Parse(json);
+            var value = (string)jObject["Value"];
+            var decodedValue = Encoding.UTF8.GetString(Convert.FromBase64String(value));
 
             JObject jsonSettings = JObject.Parse(decodedValue);
-            ConsulSettings.Url = (string)jsonSettings["thirdUrl"];
+            ConsulSettings.Url = (string)jsonSettings["nextUrl"];
             ConsulSettings.ConnectionString = (string)jsonSettings["connectionString"];
         }
     }
