@@ -10,14 +10,14 @@ namespace JaegerNetCoreSecond.App_Data
 {
     public class BService
     {
-        private string _connectionString = @"";
         private readonly WebClient _webClient = new WebClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lol' ";
 
         public async Task<string[]> GetValues()
         {
-            var url = "http://localhost:56509/api/GetValues";
-            using (IDbConnection db = new SqlConnection(_connectionString))
+            var url = ConsulSettings.Url;
+            var connectionString = ConsulSettings.ConnectionString;
+            using (IDbConnection db = new SqlConnection(connectionString))
             {
                 var command = new CommandDefinition(GetValuesQuery);
                 var dbRes = (await db.QueryAsync<string>(command)).ToList();
