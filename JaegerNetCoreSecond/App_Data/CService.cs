@@ -20,6 +20,5 @@ namespace JaegerNetCoreThird.App_Data
                 return (await db.QueryAsync<string>(command)).First();
             }
         }
-
     }
 }

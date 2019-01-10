@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Text;
+using Consul;
 using JaegerNetCoreSecond.App_Data;
 using JaegerNetCoreSecond.Tracer;
 using Microsoft.AspNetCore.Builder;
@@ -37,6 +38,7 @@ namespace JaegerNetCoreSecond
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            RegisterService();
             GetSettings();
 
             if (env.IsDevelopment())
@@ -52,17 +54,27 @@ namespace JaegerNetCoreSecond
             var client = new HttpClient();
             var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/configB");
 
-            var indexOfOpenBracket = getRequest.IndexOf('{');
-            var indexOfCloseBracket = getRequest.LastIndexOf('}');
-            var json = getRequest.Substring(indexOfOpenBracket, indexOfCloseBracket - indexOfOpenBracket + 1);
-
-            var jObject = JObject.Parse(json);
+            var jObject = JObject.Parse(Utils.GetJson(getRequest));
             var value = (string)jObject["Value"];
             var decodedValue = Encoding.UTF8.GetString(Convert.FromBase64String(value));
 
             JObject jsonSettings = JObject.Parse(decodedValue);
-            ConsulSettings.Url = (string)jsonSettings["nextUrl"];
             ConsulSettings.ConnectionString = (string)jsonSettings["connectionString"];
+        }
+
+        public async void RegisterService()
+        {
+            var registration = new AgentServiceRegistration
+            {
+                Name = "Second",
+                Port = 56504,
+                Address = "http://localhost"
+            };
+
+            using (var client = new ConsulClient())
+            {
+                await client.Agent.ServiceRegister(registration);
+            }
         }
     }
 }
