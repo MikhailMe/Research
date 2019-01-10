@@ -39,5 +39,7 @@ namespace JaegerNetCoreSecond
 
             app.UseMvc();
         }
+
+        // TODO: get information from consul here
     }
 }
