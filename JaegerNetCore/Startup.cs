@@ -49,17 +49,11 @@ namespace JaegerNetCoreSecond
             app.UseMvc();
         }
 
-        public async void GetSettings()
+        public void GetSettings()
         {
-            var client = new HttpClient();
-            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/config");
-
-            var jObject = JObject.Parse(Utils.GetJson(getRequest));
-            var value = (string)jObject["Value"];
-            var decodedValue = Encoding.UTF8.GetString(Convert.FromBase64String(value));
-
-            JObject jsonSettings = JObject.Parse(decodedValue);
-            ConsulSettings.ConnectionString = (string)jsonSettings["connectionString"];
+            var pair = new ConsulClient().KV.Get("example/config").GetAwaiter().GetResult().Response;
+            JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
+            ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
         public async void RegisterService()
