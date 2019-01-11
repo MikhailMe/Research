@@ -52,7 +52,7 @@ namespace JaegerNetCoreSecond
         public async void GetSettings()
         {
             var client = new HttpClient();
-            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/configB");
+            var getRequest = await client.GetStringAsync("http://localhost:8500/v1/kv/example/config");
 
             var jObject = JObject.Parse(Utils.GetJson(getRequest));
             var value = (string)jObject["Value"];
