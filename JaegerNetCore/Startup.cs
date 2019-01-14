@@ -19,9 +19,15 @@ namespace JaegerNetCoreSecond
     {
         private string _appPort;
         private string _appAddress;
-        private const string ServiceName = "Second Service";
-        private static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-        private static readonly Jaeger.Tracer Tracer = Tracing.Init(ServiceName, LoggerFactory);
+        private static readonly ILoggerFactory LoggerFactory;
+        private static readonly Jaeger.Tracer Tracer;
+
+        static Startup()
+        {
+            ConsulSettings.ServiceName = "Second Service";
+            LoggerFactory = new LoggerFactory().AddConsole();
+            Tracer = Tracing.Init(ConsulSettings.ServiceName, LoggerFactory);
+        }
 
         public Startup(IConfiguration configuration)
         {
@@ -78,8 +84,8 @@ namespace JaegerNetCoreSecond
             var registration = new AgentServiceRegistration
             {
                 Checks = new [] { httpCheck },
-                ID = ServiceName,
-                Name = ServiceName,
+                ID = ConsulSettings.ServiceName,
+                Name = ConsulSettings.ServiceName,
                 Port = int.Parse(_appPort),
                 Address = _appAddress
             };

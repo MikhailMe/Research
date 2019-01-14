@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Text;
 using Consul;
-using JaegerNetCoreSecond.App_Data;
+using JaegerNetCoreThird.App_Data;
 using JaegerNetCoreThird.Tracer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -19,9 +19,15 @@ namespace JaegerNetCoreThird
     {
         private string _appPort;
         private string _appAddress;
-        private const string ServiceName = "Third Service";
-        private static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-        private static readonly Jaeger.Tracer Tracer = Tracing.Init(ServiceName, LoggerFactory);
+        private static readonly ILoggerFactory LoggerFactory;
+        private static readonly Jaeger.Tracer Tracer;
+
+        static Startup()
+        {
+            ConsulSettings.ServiceName = "Third Service";
+            LoggerFactory = new LoggerFactory().AddConsole();
+            Tracer = Tracing.Init(ConsulSettings.ServiceName, LoggerFactory);
+        }
 
         public Startup(IConfiguration configuration)
         {
@@ -77,8 +83,8 @@ namespace JaegerNetCoreThird
             var registration = new AgentServiceRegistration
             {
                 Check = httpCheck,
-                Name = ServiceName,
-                ID = ServiceName,
+                Name = ConsulSettings.ServiceName,
+                ID = ConsulSettings.ServiceName,
                 Port = int.Parse(_appPort),
                 Address = _appAddress
             };

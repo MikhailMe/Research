@@ -9,9 +9,9 @@ namespace JaegerNetCoreFirst.App_Data
         [HttpGet, Route("GetValues", Name = "GetValues")]
         public async Task<string[]> GetValues()
         {
-                var service = new AService();
-                var result = await service.GetValues();
-                return result;
+            var service = new AService();
+            var result = await service.GetValues();
+            return result;
         }
         
         [HttpGet, Route("HealthCheck", Name = "HealthCheck")]

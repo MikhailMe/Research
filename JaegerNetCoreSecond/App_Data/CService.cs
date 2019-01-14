@@ -3,7 +3,6 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
-using JaegerNetCoreSecond.App_Data;
 
 namespace JaegerNetCoreThird.App_Data
 {

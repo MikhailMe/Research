@@ -5,13 +5,13 @@ using System.Net;
 using System.Threading.Tasks;
 using Consul;
 using Dapper;
-using JaegerNetCoreSecond.App_Data;
 
 namespace JaegerNetCoreFirst.App_Data
 {
     public class AService
     {
-        private const string NameNextService = "Second";
+        private const string NodeName = "MaMedvedevPC";
+        private const string NextServiceName = "Second Service";
         private readonly WebClient _webClient = new WebClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lul' ";
 
@@ -33,10 +33,11 @@ namespace JaegerNetCoreFirst.App_Data
         {
             using (var consulClient = new ConsulClient())
             {
-                var services = consulClient.Agent.Services().GetAwaiter().GetResult().Response;
-                var address = services[NameNextService].Address;
-                var port = services[NameNextService].Port;
-                return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+                var services = consulClient.Catalog.Service(NextServiceName).GetAwaiter().GetResult().Response;
+                var currentService = services.First(service => service.Node.Equals(NodeName));
+                var address = currentService.ServiceAddress;
+                var port = currentService.ServicePort;
+                return ConsulSettings.Url = $"{address}:{port}/api/GetValues";
             }
         }
     }

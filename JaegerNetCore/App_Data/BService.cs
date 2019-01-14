@@ -10,7 +10,8 @@ namespace JaegerNetCoreSecond.App_Data
 {
     public class BService
     {
-        private const string NameNextService = "Third";
+        private const string NodeName = "MaMedvedevPC";
+        private const string NextServiceName = "Third Service";
         private readonly WebClient _webClient = new WebClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lol' ";
 
@@ -32,10 +33,11 @@ namespace JaegerNetCoreSecond.App_Data
         {
             using (var consulClient = new ConsulClient())
             {
-                var services = consulClient.Agent.Services().GetAwaiter().GetResult().Response;
-                var address = services[NameNextService].Address;
-                var port = services[NameNextService].Port;
-                return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+                var services = consulClient.Catalog.Service(NextServiceName).GetAwaiter().GetResult().Response;
+                var currentService = services.First(service => service.Node.Equals(NodeName));
+                var address = currentService.ServiceAddress;
+                var port = currentService.ServicePort;
+                return ConsulSettings.Url = $"{address}:{port}/api/GetValues";
             }
         }
     }

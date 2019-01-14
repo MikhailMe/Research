@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Consul;
+using JaegerNetCoreFirst.App_Data;
 using JaegerNetCoreFirst.Tracer;
-using JaegerNetCoreSecond.App_Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -21,11 +21,15 @@ namespace JaegerNetCoreFirst
     {
         private string _appPort;
         private string _appAddress;
-        private const string ServiceName = "First Service";
-        private static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-        private static readonly Jaeger.Tracer Tracer = Tracing.Init(ServiceName, LoggerFactory);
+        private static readonly ILoggerFactory LoggerFactory;
+        private static readonly Jaeger.Tracer Tracer;
 
-        public const string DiagnosticListenerName = "Microsoft.AspNetCore";
+        static Startup()
+        {
+            ConsulSettings.ServiceName = "First Service";
+            LoggerFactory = new LoggerFactory().AddConsole();
+            Tracer = Tracing.Init(ConsulSettings.ServiceName, LoggerFactory);
+        }
 
         public Startup(IConfiguration configuration)
         {
@@ -92,8 +96,8 @@ namespace JaegerNetCoreFirst
             var registration = new AgentServiceRegistration
             {
                 Checks = new [] { httpCheck },
-                Name = ServiceName,
-                ID = ServiceName,
+                Name = ConsulSettings.ServiceName,
+                ID = ConsulSettings.ServiceName,
                 Port = int.Parse(_appPort),
                 Address = _appAddress
             };
