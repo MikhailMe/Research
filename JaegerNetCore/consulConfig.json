@@ -3,5 +3,6 @@
     "log_level": "TRACE",
     "bind_addr": "10.40.0.71",
     "server": true,
-    "acl_datacenter": "dc1"
+    "acl_datacenter": "dc1",
+    "enable_script_checks": true
 }

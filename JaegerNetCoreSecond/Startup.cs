@@ -1,5 +1,4 @@
 using System;
-using System.Net.Http;
 using System.Text;
 using Consul;
 using JaegerNetCoreSecond.App_Data;
@@ -56,18 +55,34 @@ namespace JaegerNetCoreThird
             ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
-        public async void RegisterService()
+        public void RegisterService()
         {
+            var httpCheck = new AgentServiceCheck
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                HTTP = "http://localhost:{56509}/HealthCheck"
+            };
+
+            var tcpCheck = new AgentServiceCheck
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                TCP = "http://localhost:56509"
+            };
+
             var registration = new AgentServiceRegistration
             {
+                Checks = new [] {tcpCheck, httpCheck},
                 Name = "Third",
+                ID = "Third",
                 Port = 56509,
                 Address = "http://localhost"
             };
 
             using (var client = new ConsulClient())
             {
-                await client.Agent.ServiceRegister(registration);
+                client.Agent.ServiceRegister(registration).GetAwaiter().GetResult();
             }
         }
 

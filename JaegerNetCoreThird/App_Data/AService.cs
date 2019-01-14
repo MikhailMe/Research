@@ -13,7 +13,6 @@ namespace JaegerNetCoreFirst.App_Data
     {
         private const string NameNextService = "Second";
         private readonly WebClient _webClient = new WebClient();
-        private readonly ConsulClient _consulClient = new ConsulClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lul' ";
 
         public async Task<string[]> GetValues()
@@ -32,10 +31,13 @@ namespace JaegerNetCoreFirst.App_Data
 
         public string GetUrl()
         {
-            var services = _consulClient.Agent.Services().GetAwaiter().GetResult().Response;
-            var address = services[NameNextService].Address;
-            var port = services[NameNextService].Port;
-            return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+            using (var consulClient = new ConsulClient())
+            {
+                var services = consulClient.Agent.Services().GetAwaiter().GetResult().Response;
+                var address = services[NameNextService].Address;
+                var port = services[NameNextService].Port;
+                return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+            }
         }
     }
 }

@@ -56,10 +56,26 @@ namespace JaegerNetCoreSecond
             ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
-        public async void RegisterService()
+        public void RegisterService()
         {
+            var httpCheck = new AgentServiceCheck
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                HTTP = "http://localhost:56504/HealthCheck"
+            };
+
+            var tcpCheck = new AgentServiceCheck
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                TCP = "http://localhost:56504"
+            };
+
             var registration = new AgentServiceRegistration
             {
+                Checks = new[] {tcpCheck, httpCheck},
+                ID = "Second",
                 Name = "Second",
                 Port = 56504,
                 Address = "http://localhost"
@@ -67,7 +83,7 @@ namespace JaegerNetCoreSecond
 
             using (var client = new ConsulClient())
             {
-                await client.Agent.ServiceRegister(registration);
+                client.Agent.ServiceRegister(registration).GetAwaiter().GetResult();
             }
         }
     }

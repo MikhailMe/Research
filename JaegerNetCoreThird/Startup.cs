@@ -62,16 +62,28 @@ namespace JaegerNetCoreFirst
 
         public void GetSettings()
         {
-            var pair = new ConsulClient().KV.Get("example/config").GetAwaiter().GetResult().Response;
-            JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
-            ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
+            using (var consulClient = new ConsulClient())
+            {
+                var pair = consulClient.KV.Get("example/config").GetAwaiter().GetResult().Response;
+                JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
+                ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
+            }
         }
 
         public async void RegisterService()
         {
+            var httpCheck = new AgentServiceCheck
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                HTTP = "http://localhost:56510/api/HealthCheck"
+            };
+
             var registration = new AgentServiceRegistration
             {
+                Checks = new [] {httpCheck },
                 Name = "First",
+                ID = "First",
                 Port = 56510,
                 Address = "http://localhost"
             };
