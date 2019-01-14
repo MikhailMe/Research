@@ -1,10 +1,12 @@
 using System;
+using System.Linq;
 using System.Text;
 using Consul;
 using JaegerNetCoreSecond.App_Data;
 using JaegerNetCoreThird.Tracer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,8 +17,11 @@ namespace JaegerNetCoreThird
 {
     public class Startup
     {
+        private string _appPort;
+        private string _appAddress;
+        private const string ServiceName = "Third Service";
         private static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-        private static readonly Jaeger.Tracer Tracer = Tracing.Init("Third Service", LoggerFactory);
+        private static readonly Jaeger.Tracer Tracer = Tracing.Init(ServiceName, LoggerFactory);
 
         public Startup(IConfiguration configuration)
         {
@@ -37,6 +42,11 @@ namespace JaegerNetCoreThird
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            // get address and port from settings
+            var url = app.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single().Split(":");
+            _appAddress = $"{url[0]}:{url[1]}";
+            _appPort = url[2].Remove(url[2].Length - 1);
+
             RegisterService();
             GetSettings();
 
@@ -48,43 +58,35 @@ namespace JaegerNetCoreThird
             app.UseMvc();
         }
 
-        public void GetSettings()
+        private void GetSettings()
         {
             var pair = new ConsulClient().KV.Get("example/config").GetAwaiter().GetResult().Response;
             JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
             ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
-        public void RegisterService()
+        private async void RegisterService()
         {
             var httpCheck = new AgentServiceCheck
             {
-                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
-                Interval = TimeSpan.FromSeconds(30),
-                HTTP = "http://localhost:{56509}/HealthCheck"
-            };
-
-            var tcpCheck = new AgentServiceCheck
-            {
-                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
-                Interval = TimeSpan.FromSeconds(30),
-                TCP = "http://localhost:56509"
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(20),
+                Interval = TimeSpan.FromSeconds(10),
+                HTTP = $"{_appAddress}:{_appPort}/api/HealthCheck"
             };
 
             var registration = new AgentServiceRegistration
             {
-                Checks = new [] {tcpCheck, httpCheck},
-                Name = "Third",
-                ID = "Third",
-                Port = 56509,
-                Address = "http://localhost"
+                Check = httpCheck,
+                Name = ServiceName,
+                ID = ServiceName,
+                Port = int.Parse(_appPort),
+                Address = _appAddress
             };
 
             using (var client = new ConsulClient())
             {
-                client.Agent.ServiceRegister(registration).GetAwaiter().GetResult();
+                await client.Agent.ServiceRegister(registration);
             }
         }
-
     }
 }

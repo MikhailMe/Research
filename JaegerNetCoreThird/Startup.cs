@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Consul;
 using JaegerNetCoreFirst.Tracer;
 using JaegerNetCoreSecond.App_Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +19,11 @@ namespace JaegerNetCoreFirst
 {
     public class Startup
     {
+        private string _appPort;
+        private string _appAddress;
+        private const string ServiceName = "First Service";
         private static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-        private static readonly Jaeger.Tracer Tracer = Tracing.Init("First Service", LoggerFactory);
+        private static readonly Jaeger.Tracer Tracer = Tracing.Init(ServiceName, LoggerFactory);
 
         public const string DiagnosticListenerName = "Microsoft.AspNetCore";
 
@@ -49,6 +54,11 @@ namespace JaegerNetCoreFirst
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            // get address and port from settings
+            var url = app.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single().Split(":");
+            _appAddress = $"{url[0]}:{url[1]}";
+            _appPort = url[2].Remove(url[2].Length - 1);
+
             RegisterService();
             GetSettings();
 
@@ -60,7 +70,7 @@ namespace JaegerNetCoreFirst
             app.UseMvc();
         }
 
-        public void GetSettings()
+        private void GetSettings()
         {
             using (var consulClient = new ConsulClient())
             {
@@ -70,22 +80,22 @@ namespace JaegerNetCoreFirst
             }
         }
 
-        public async void RegisterService()
+        private async void RegisterService()
         {
             var httpCheck = new AgentServiceCheck
             {
-                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
-                Interval = TimeSpan.FromSeconds(30),
-                HTTP = "http://localhost:56510/api/HealthCheck"
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(20),
+                Interval = TimeSpan.FromSeconds(10),
+                HTTP = $"{_appAddress}:{_appPort}/api/HealthCheck"
             };
 
             var registration = new AgentServiceRegistration
             {
-                Checks = new [] {httpCheck },
-                Name = "First",
-                ID = "First",
-                Port = 56510,
-                Address = "http://localhost"
+                Checks = new [] { httpCheck },
+                Name = ServiceName,
+                ID = ServiceName,
+                Port = int.Parse(_appPort),
+                Address = _appAddress
             };
 
             using (var client = new ConsulClient())
@@ -93,6 +103,5 @@ namespace JaegerNetCoreFirst
                 await client.Agent.ServiceRegister(registration);
             }
         }
-
     }
 }

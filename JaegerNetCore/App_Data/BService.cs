@@ -30,10 +30,13 @@ namespace JaegerNetCoreSecond.App_Data
 
         public string GetUrl()
         {
-            var services = new ConsulClient().Agent.Services().GetAwaiter().GetResult().Response;
-            var address = services[NameNextService].Address;
-            var port = services[NameNextService].Port;
-            return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+            using (var consulClient = new ConsulClient())
+            {
+                var services = consulClient.Agent.Services().GetAwaiter().GetResult().Response;
+                var address = services[NameNextService].Address;
+                var port = services[NameNextService].Port;
+                return ConsulSettings.Url = address + ":" + port + "/api/GetValues";
+            }
         }
     }
 }

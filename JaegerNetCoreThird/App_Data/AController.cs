@@ -17,7 +17,7 @@ namespace JaegerNetCoreFirst.App_Data
         [HttpGet, Route("HealthCheck", Name = "HealthCheck")]
         public string HealthCheck()
         {
-            return "health check";
+            return "health check service A";
         }
     }
 }
