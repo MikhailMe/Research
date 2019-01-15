@@ -10,10 +10,10 @@ namespace JaegerNetCoreFirst.App_Data
 {
     public class AService
     {
-        private const string NodeName = "MaMedvedevPC";
+        private const string NextNodeName = "MaMedvedevPC";
         private const string NextServiceName = "Second Service";
         private readonly WebClient _webClient = new WebClient();
-        private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lul' ";
+        private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'test1' ";
 
         public async Task<string[]> GetValues()
         {
@@ -34,7 +34,7 @@ namespace JaegerNetCoreFirst.App_Data
             using (var consulClient = new ConsulClient())
             {
                 var services = consulClient.Catalog.Service(NextServiceName).GetAwaiter().GetResult().Response;
-                var currentService = services.First(service => service.Node.Equals(NodeName));
+                var currentService = services.First(service => service.Node.Equals(NextNodeName));
                 var address = currentService.ServiceAddress;
                 var port = currentService.ServicePort;
                 return ConsulSettings.Url = $"{address}:{port}/api/GetValues";

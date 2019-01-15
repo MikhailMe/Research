@@ -8,7 +8,7 @@ namespace JaegerNetCoreThird.App_Data
 {
     public class CService
     {
-        private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'lal' ";
+        private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'test3' ";
 
         public async Task<string> GetValues()
         {
