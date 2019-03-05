@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Consul;
 using JaegerNetCoreFirst.App_Data;
 using JaegerNetCoreFirst.Tracer;
@@ -23,6 +24,9 @@ namespace JaegerNetCoreFirst
         private string _appAddress;
         private static readonly ILoggerFactory LoggerFactory;
         private static readonly Jaeger.Tracer Tracer;
+
+        private const string PathToStorage = "example/config";
+        private const string ConnectionString = "";
 
         static Startup()
         {
@@ -64,6 +68,9 @@ namespace JaegerNetCoreFirst
             _appPort = url[2].Remove(url[2].Length - 1);
 
             RegisterService();
+
+            PutSettings();
+
             GetSettings();
 
             if (env.IsDevelopment())
@@ -74,12 +81,24 @@ namespace JaegerNetCoreFirst
             app.UseMvc();
         }
 
+        private void PutSettings()
+        {
+            using (var consulClient = new ConsulClient())
+            {
+                var pair = new KVPair(PathToStorage)
+                {
+                    Value = Encoding.ASCII.GetBytes(ConnectionString)
+                };
+                consulClient.KV.Put(pair, CancellationToken.None);
+            }
+        }
+
         private void GetSettings()
         {
             using (var consulClient = new ConsulClient())
             {
-                var pair = consulClient.KV.Get("example/config").GetAwaiter().GetResult().Response;
-                JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
+                var pair = consulClient.KV.Get(PathToStorage).GetAwaiter().GetResult().Response;
+                var connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
                 ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
             }
         }
@@ -88,8 +107,8 @@ namespace JaegerNetCoreFirst
         {
             var httpCheck = new AgentServiceCheck
             {
-                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(20),
-                Interval = TimeSpan.FromSeconds(10),
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(5),
+                Interval = TimeSpan.FromSeconds(3),
                 HTTP = $"{_appAddress}:{_appPort}/api/HealthCheck"
             };
 

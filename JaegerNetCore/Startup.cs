@@ -68,7 +68,7 @@ namespace JaegerNetCoreSecond
         private void GetSettings()
         {
             var pair = new ConsulClient().KV.Get("example/config").GetAwaiter().GetResult().Response;
-            JObject connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
+            var connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
             ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
@@ -76,8 +76,8 @@ namespace JaegerNetCoreSecond
         {
             var httpCheck = new AgentServiceCheck
             {
-                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(20),
-                Interval = TimeSpan.FromSeconds(10),
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(5), 
+                Interval = TimeSpan.FromSeconds(3),
                 HTTP = $"{_appAddress}:{_appPort}/api/HealthCheck"
             };
 

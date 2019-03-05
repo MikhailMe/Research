@@ -10,7 +10,7 @@ namespace JaegerNetCoreSecond.App_Data
 {
     public class BService
     {
-        private const string NextNodeName = "MaMedvedevPC";
+        private const string NextNodeName = "TErniyazovPC";
         private const string NextServiceName = "Third Service";
         private readonly WebClient _webClient = new WebClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'test2' ";

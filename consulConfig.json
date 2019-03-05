@@ -2,7 +2,10 @@
 	"bootstrap": false,
     "log_level": "TRACE",
     "bind_addr": "10.40.0.71",
+    "client_addr" : "10.40.0.71",
+    "node_name": "test-name-node-Mikhail",
     "server": true,
     "acl_datacenter": "dc1",
-    "enable_script_checks": true
+    "enable_script_checks": true,
+    "retry_join": ["10.40.0.72"]
 }
