@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
@@ -8,9 +9,9 @@ using Dapper;
 
 namespace JaegerNetCoreSecond.App_Data
 {
-    public class BService
+    public class BService : IDisposable
     {
-        private const string NextNodeName = "TErniyazovPC";
+        private const string NextNodeName = "test-name-node-Timur";
         private const string NextServiceName = "Third Service";
         private readonly WebClient _webClient = new WebClient();
         private const string GetValuesQuery = @"SELECT name FROM tableTest where name = 'test2' ";
@@ -33,12 +34,18 @@ namespace JaegerNetCoreSecond.App_Data
         {
             using (var consulClient = new ConsulClient())
             {
+                consulClient.Config.Address = ConsulSettings.ClientUrl;
                 var services = consulClient.Catalog.Service(NextServiceName).GetAwaiter().GetResult().Response;
                 var currentService = services.First(service => service.Node.Equals(NextNodeName));
                 var address = currentService.ServiceAddress;
                 var port = currentService.ServicePort;
                 return ConsulSettings.Url = $"{address}:{port}/api/GetValues";
             }
+        }
+
+        public void Dispose()
+        {
+            _webClient?.Dispose();
         }
     }
 }

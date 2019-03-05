@@ -18,13 +18,15 @@ using OpenTracing.Util;
 
 namespace JaegerNetCoreFirst
 {
-    public class Startup
+    public class Startup : IDisposable
     {
         private string _appPort;
         private string _appAddress;
+        private readonly ConsulClient _consulClient;
         private static readonly ILoggerFactory LoggerFactory;
         private static readonly Jaeger.Tracer Tracer;
 
+        private const string ConsulPort = "8500";
         private const string PathToStorage = "example/config";
         private const string ConnectionString = "";
 
@@ -38,11 +40,11 @@ namespace JaegerNetCoreFirst
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+            _consulClient = new ConsulClient();
         }
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
@@ -56,16 +58,16 @@ namespace JaegerNetCoreFirst
             services.AddOpenTracing(c => c.AddAspNetCore()
                 .ConfigureAspNetCore(options => options.Hosting.IgnorePatterns.AddRange(ignorePatterns)
             ));
-            //services.Configure<HttpHandlerDiagnosticOptions>(options => options.IgnorePatterns.Add(x => !x.Headers.Contains("TracingEnable")));
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            // get address and port from settings
             var url = app.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single().Split(":");
             _appAddress = $"{url[0]}:{url[1]}";
             _appPort = url[2].Remove(url[2].Length - 1);
+            var uri = new Uri($"{_appAddress}:{ConsulPort}");
+            _consulClient.Config.Address = uri;
+            ConsulSettings.ClientUrl = uri;
 
             RegisterService();
 
@@ -83,24 +85,18 @@ namespace JaegerNetCoreFirst
 
         private void PutSettings()
         {
-            using (var consulClient = new ConsulClient())
+            var pair = new KVPair(PathToStorage)
             {
-                var pair = new KVPair(PathToStorage)
-                {
-                    Value = Encoding.ASCII.GetBytes(ConnectionString)
-                };
-                consulClient.KV.Put(pair, CancellationToken.None);
-            }
+                Value = Encoding.ASCII.GetBytes(ConnectionString)
+            };
+            _consulClient.KV.Put(pair, CancellationToken.None);
         }
 
         private void GetSettings()
         {
-            using (var consulClient = new ConsulClient())
-            {
-                var pair = consulClient.KV.Get(PathToStorage).GetAwaiter().GetResult().Response;
-                var connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
-                ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
-            }
+            var pair = _consulClient.KV.Get(PathToStorage).GetAwaiter().GetResult().Response;
+            var connectionStringJson = JObject.Parse(Encoding.Default.GetString(pair.Value));
+            ConsulSettings.ConnectionString = (string)connectionStringJson["connectionString"];
         }
 
         private async void RegisterService()
@@ -121,10 +117,12 @@ namespace JaegerNetCoreFirst
                 Address = _appAddress
             };
 
-            using (var client = new ConsulClient())
-            {
-                await client.Agent.ServiceRegister(registration);
-            }
+            await _consulClient.Agent.ServiceRegister(registration);
+        }
+
+        public void Dispose()
+        {
+            _consulClient?.Dispose();
         }
     }
 }
